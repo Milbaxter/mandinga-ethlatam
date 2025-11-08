@@ -1,522 +1,301 @@
-# 🏗 MANDINGA RAFFLE
+# 🟢 Mandinga  
+**Luck as the entry point. Wealth as the outcome.**
 
-## Overview
-
-The CoFHE Scaffold-ETH 2 template adds support for Fully Homomorphic Encryption (FHE) operations to the standard Scaffold-ETH 2 template. This project demonstrates a **privacy-preserving Raffle system** that uses FHE encryption to keep participant data confidential while maintaining transparent winner selection and prize distribution.
-
-## Built With
-
-This project leverages cutting-edge blockchain technologies:
-
-- **[Scaffold-ETH 2](https://scaffoldeth.io)** - An open-source toolkit for building decentralized applications, built by [BuidlGuidl](https://buidlguidl.com/)
-- **[Fhenix](https://fhenix.io)** - Fully Homomorphic Encryption (FHE) protocol enabling privacy-preserving smart contract operations
-- **[Chainlink VRF](https://chain.link/vrf)** - Verifiable Random Function for provably fair random winner selection
-- **[Arbitrum](https://arbitrum.io)** - Layer 2 scaling solution for Ethereum, supported as a deployment target
-
-### Raffle Contract Features
-
-- **Privacy-First Design**: Participant count encrypted using FHE, ensuring participant privacy
-- **Quota-Based System**: Users can purchase multiple quotas to increase their chances of winning
-- **Automatic Winner Selection**: Winner is automatically selected when all quotas are sold
-- **Time-Based Selection**: Manual selection available after 7 days if quotas aren't sold out
-- **Secure Prize Distribution**: ETH prize claiming with reentrancy protection
-- **Transparent Operations**: Winner selection and prize distribution remain verifiable on-chain
-
-## QuickStart
-
-To get up and testing, clone and open the repo, then:
-
-1. Start up the local hardhat node (you will see the mocks getting deployed, explained below)
-
-```bash
-yarn chain
-```
-
-2. Deploy the Raffle contract
-
-```bash
-yarn deploy:local
-```
-
-3. Start the NextJS webapp
-
-```bash
-yarn start
-```
-
-4. Open the dApp at `http://localhost:3000` and explore the **Raffle** system:
-   - Buy quotas with ETH
-   - View raffle status and participant count (encrypted)
-   - Select winner when conditions are met
-   - Claim prize as the winner
-
-## Integrated Tools
-
-### Core Technologies
-
-- **Scaffold-ETH 2** - Built with NextJS, RainbowKit, Hardhat, Wagmi, Viem, and TypeScript
-- **Fhenix CoFHE** - Fully Homomorphic Encryption SDK and contracts for privacy-preserving operations
-- **Chainlink VRF v2** - Verifiable Random Function for provably fair randomness
-- **Arbitrum** - Layer 2 network support for scalable deployments
-
-### Fhenix CoFHE Packages
-
-- **Hardhat**:
-  - `@fhenixprotocol/cofhe-contracts` - Package containing `FHE.sol`. `FHE.sol` is a library that exposes FHE arithmetic operations like `FHE.add` and `FHE.mul` along with access control functions.
-  - `@cofhe/mock-contracts` - The CoFHE coprocessor exists off-chain. `@cofhe/mock-contracts` are a fully on-chain drop-in replacement for the off-chain components. These mocks allow better developer and testing experience when working with FHE. Is transparently used as a dependency of `@cofhe/hardhat-plugin`
-  - `@cofhe/hardhat-plugin` - A hardhat plugin responsible for deploying the mock contracts on the hardhat network and during tests. Also exposes testing utility functions in `hre.cofhesdk.___`.
-  - `@cofhe/sdk` - Primary connection to the CoFHE coprocessor. Exposes functions like `encryptInputs` (for sealing) and `decryptHandle` (for unsealing). Manages access permits. Automatically plays nicely with the mock environment.
-
-- **NextJS**:
-  - `@cofhe/sdk` - Primary connection to the CoFHE coprocessor. Exposes functions like `encryptInputs` (for sealing) and `decryptHandle` (for unsealing). Manages access permits. Automatically plays nicely with the mock environment.
-
-### Chainlink Integration
-
-- **Chainlink VRF v2** - Used in the Raffle contract for provably fair random winner selection
-  - Requires a Chainlink VRF subscription with sufficient LINK balance
-  - Configured for Sepolia, Arbitrum Sepolia, and other supported networks
-  - See deployment scripts for network-specific VRF configuration
-
-## Working with FHE Smart Contracts
-
-### Hardhat Setup
-
-1. **[Hardhat Configuration](packages/hardhat/hardhat.config.ts)**:
-
-   ```typescript
-   import 'cofhe-hardhat-plugin'
-
-   module.exports = {
-   	solidity: '0.8.25',
-   	evmVersion: 'cancun',
-   	// ... other config
-   }
-   ```
-
-2. **[TypeScript Configuration](packages/hardhat/tsconfig.json)**:
-
-   ```json
-   {
-   	"compilerOptions": {
-   		"target": "es2020",
-   		"module": "Node16",
-   		"moduleResolution": "Node16"
-   	}
-   }
-   ```
-
-3. **[Multicall3 Deployment](packages/hardhat/deploy/00_deploy_multicall.ts)**:
-   The Multicall3 contract is deployed on the hardhat node to support the `useReadContracts` hook from viem. This allows efficient batch reading of contract data in the mock environment.
-
-## Smart Contracts
-
-### Raffle Contract
-
-The [`Raffle.sol`](packages/hardhat/contracts/Raffle.sol) contract demonstrates a privacy-preserving raffle system using FHE encryption. Key features include:
-
-- **Private Participant Tracking**: Participant count is stored in encrypted form using FHE
-- **Quota-Based System**: Users can purchase multiple quotas to increase their chances
-- **Automatic Winner Selection**: Winner is automatically selected when all quotas are sold
-- **Time-Based Selection**: Winner can be manually selected after 7 days if quotas aren't sold out
-- **Prize Distribution**: Winners can claim their ETH prize after selection
-
-#### Key Features:
-
-1. **Encrypted Participant Count**:
-   ```solidity
-   euint32 private encryptedParticipantCount;
-   ```
-   The total number of participants is kept private using FHE encryption, ensuring participant privacy.
-
-2. **Quota Purchase System**:
-   - Users can buy multiple quotas at a fixed price per quota
-   - Each quota purchased increases the user's chances of winning
-   - The participant list is stored privately on-chain
-
-3. **Winner Selection**:
-   - Automatically triggered when all quotas are sold
-   - Can be manually triggered after 7 days if quotas aren't sold out
-   - Uses **Chainlink VRF v2** for provably fair random winner selection
-
-4. **Prize Claiming**:
-   - Only the selected winner can claim the prize
-   - Prize is distributed in ETH
-   - Includes reentrancy protection
-
-#### Example Usage:
-
-```solidity
-// Buy quotas
-raffle.buyQuota(10, { value: quotaPrice * 10 });
-
-// Check raffle status
-(uint256 prize, uint256 total, uint256 sold, ...) = raffle.getRaffleInfo();
-
-// Select winner manually (after 7 days or when all quotas sold)
-raffle.selectWinner();
-
-// Winner claims prize
-raffle.claimPrize();
-```
-
-The Raffle contract demonstrates how FHE can be used to maintain privacy in applications where participant information should remain confidential while still allowing transparent winner selection and prize distribution.
-
-### FHE Concepts Used in Raffle
-
-The Raffle contract uses FHE encryption to keep participant data private. Key FHE concepts:
-
-1. **Encrypted Types**:
-   - `euint32`: Encrypted unsigned 32-bit integer
-   - Used to store the participant count in encrypted form
-
-2. **FHE Operations**:
-   - `FHE.add(a, b)`: Add two encrypted values
-   - `FHE.asEuint32(value)`: Convert plaintext to encrypted value
-   - See `FHE.sol` for the full list of available operations
-
-3. **Access Control**:
-   - `FHE.allowThis(value)`: Allow the contract to read the value
-   - `FHE.allowSender(value)`: Allow the transaction sender to read the value
-   - `FHE.allowGlobal(value)`: Allow anyone to read the value
-   - Access control must be explicitly set after each operation that modifies an encrypted value
-
-### Testing the Raffle Contract
-
-To test the Raffle contract with FHE encryption, you need to initialize the CoFHE SDK client:
-
-```typescript
-const [bob] = await hre.ethers.getSigners()
-
-// Initialize FHE with a Hardhat signer
-const client = await hre.cofhesdk.createBatteriesIncludedCofhesdkClient(bob);
-```
-
-To verify encrypted values in tests:
-
-```typescript
-// Get the encrypted participant count
-const encryptedCount = await raffle.getEncryptedParticipantCount();
-
-// Verify the encrypted value (only works in mock environment)
-await hre.cofhesdk.mocks.expectPlaintext(encryptedCount, expectedValue);
-```
-
-To decrypt encrypted values:
-
-```typescript
-const encryptedCount = await raffle.getEncryptedParticipantCount();
-const decryptedResult = await client.decryptHandle(encryptedCount, FheTypes.Uint32).decrypt();
-```
-
-## NextJS with FHE
-
-### Initialization
-
-The frontend initialization begins in [`ScaffoldEthAppWithProviders.tsx`](packages/nextjs/components/ScaffoldEthAppWithProviders.tsx) where the `useInitializeCofhe` hook is called:
-
-```typescript
-/**
-* CoFHE Initialization
-*
-* The CoFHE SDK client is initialized in two steps.
-* The client is constructed synchronously, with `supportedChains` provided at construction time.
-* The useInitializeCofhe hook then makes sure the CoFHE SDK client is connected to the current wallet and is ready to function.
-* It performs the following key functions:
-* - Connects the CoFHE SDK client to the current provider and signer
-* - Initializes the FHE keys
-* - Configures the wallet client for encrypted operations
-* - Handles initialization errors with user notifications
-*
-* This hook is essential for enabling FHE (Fully Homomorphic Encryption) operations
-* throughout the application. It automatically refreshes when the connected wallet
-* or chain changes to maintain proper configuration.
-*/
-useInitializeCofhe()
-```
-
-This hook handles the complete setup of the CoFHE system, including environment detection, wallet client configuration, and permit management initialization. It runs automatically when the wallet or chain changes, ensuring the FHE system stays properly configured.
-
-### CoFHE Portal
-
-The [`CofhePortal`](packages/nextjs/components/cofhe/CofhePortal.tsx) component provides a dropdown interface for managing CoFHE permits and viewing system status. It's integrated into the [`Header`](packages/nextjs/components/Header.tsx) component as a shield icon button:
-
-```typescript
-/**
- * CoFHE Portal Integration
- *
- * The CofhePortal component is integrated into the header to provide easy access to
- * CoFHE permit management functionality. It appears as a shield icon button that opens
- * a dropdown menu containing:
- * - System initialization status
- * - Active permit information
- * - Permit management controls
- *
- * This placement ensures the portal is always accessible while using the application,
- * allowing users to manage their permits and monitor system status from any page.
- */
-<CofhePortal />
-```
-
-The portal displays:
-
-- **Connection Status**: Shows whether CoFHE is connected, the connected account, and current network
-- **Active Permit**: Displays details about the currently active permit including name, ID, issuer, and expiration
-- **Permit Management**: Allows users to create new permits, switch between existing permits, and delete unused permits
-
-### Frontend Components
-
-#### Raffle Component
-
-The [`RaffleComponent`](packages/nextjs/app/RaffleComponent.tsx) provides a complete UI for interacting with the Raffle contract:
-
-**Features:**
-- Display raffle information (prize amount, total quotas, sold quotas, etc.)
-- Buy quotas with ETH
-- View user's purchased quotas
-- Select winner (when conditions are met)
-- Claim prize (for winners)
-- Real-time balance and quota tracking
-
-**Key Interactions:**
-- Uses `useScaffoldReadContract` to read raffle state
-- Uses `useScaffoldWriteContract` for quota purchases and winner selection
-- Displays encrypted participant count using FHE decryption
-- Shows time remaining until manual selection is available
-
-### Permit Modal
-
-The [`CofhePermitModal`](packages/nextjs/components/cofhe/CofhePermitModal.tsx) allows users to generate cryptographic permits for accessing encrypted data. This modal automatically opens when a user attempts to decrypt a value in the `EncryptedValue` component without a valid permit:
-
-```typescript
-/**
- * CoFHE Permit Generation Modal
- *
- * This modal allows users to generate cryptographic permits for accessing encrypted data in the CoFHE system.
- * Permits are required because they provide a secure way to verify identity and control access to sensitive
- * encrypted data without revealing the underlying data itself.
- *
- * The modal provides the following options:
- * - Name: An optional identifier for the permit (max 24 chars)
- * - Expiration: How long the permit remains valid (1 day, 1 week (default), or 1 month)
- * - Recipient: (Currently unsupported) Option to share the permit with another address
- *
- * When generated, the permit requires a wallet signature (EIP712) to verify ownership.
- * This signature serves as proof that the user controls the wallet address associated with the permit.
- */
-```
-
-The modal opens in two scenarios:
-
-1. When clicking "Generate Permit" in the CoFHE Portal
-2. When attempting to decrypt an encrypted value without a valid permit
-
-### Reference
-
-#### EncryptedValue Component
-
-The [`EncryptedValueCard`](packages/nextjs/components/scaffold-eth/EncryptedValueCard.tsx) provides components for displaying and interacting with encrypted values:
-
-**EncryptedValue Component**:
-
-- Displays encrypted values with appropriate UI states (encrypted, decrypting, decrypted, error)
-- Handles permit validation and automatically opens the permit modal when needed
-- Manages the decryption process using the `useDecryptValue` hook
-- Shows different visual states based on the decryption status
-
-**EncryptedZone Component**:
-
-- Provides a visual wrapper with gradient borders to indicate encrypted content
-- Includes a shield icon to clearly mark encrypted data areas
-
-#### useCofhe Hooks
-
-The [`useCofhe.ts`](packages/nextjs/app/useCofhe.ts) file provides comprehensive React hooks for FHE operations:
-
-**Initialization Hooks**:
-
-```typescript
-// Hook to initialize cofhe with the connected wallet and chain configuration
-// Handles initialization errors and displays toast notifications on success or error
-// Refreshes when connected wallet or chain changes
-useInitializeCofhe()
-
-// Hook to check if cofhe is connected (provider, and signer)
-// This is used to determine if the user is ready to use the FHE library
-// FHE based interactions (encrypt / decrypt) should be disabled until this is true
-useCofheConnected()
-
-// Hook to get the current account connected to cofhe
-useCofheAccount()
-```
-
-**Status Hooks**:
-
-```typescript
-// Hook to get the complete status of cofhe
-// Returns Object containing chainId, account, and initialization status
-// Refreshes when any of the underlying values change
-useCofheStatus()
-
-// Hook to check if the currently connected chain is supported by the application
-// Returns boolean indicating if the current chain is in the target networks list
-// Refreshes when chainId changes
-useIsConnectedChainSupported()
-```
-
-**Permit Management Hooks**:
-
-```typescript
-// Hook to create a new permit
-// Returns Async function to create a permit with optional options
-// Refreshes when chainId, account, or initialization status changes
-useCofheCreatePermit()
-
-// Hook to remove a permit
-// Returns Async function to remove a permit by its hash
-// Refreshes when chainId, account, or initialization status changes
-useCofheRemovePermit()
-
-// Hook to select the active permit
-// Returns Async function to set the active permit by its hash
-// Refreshes when chainId, account, or initialization status changes
-useCofheSetActivePermit()
-
-// Hook to get the active permit object
-// Returns The active permit object or null if not found/valid
-// Refreshes when active permit hash changes
-useCofheActivePermit()
-
-// Hook to check if the active permit is valid
-// Returns boolean indicating if the active permit is valid
-// Refreshes when permit changes
-useCofheIsActivePermitValid()
-
-// Hook to get all permit objects for the current chain and account
-// Returns Array of permit objects
-// Refreshes when permit hashes change
-useCofheAllPermits()
-```
-
-#### useDecrypt Hook
-
-The [`useDecrypt.ts`](packages/nextjs/app/useDecrypt.ts) file provides utilities for handling encrypted value decryption:
-
-```typescript
-/**
- * Hook to decrypt a value using cofhe
- * @param fheType - The type of the value to decrypt
- * @param ctHash - The hash of the encrypted value
- * @returns Object containing a function to decrypt the value and the result of the decryption
- */
-useDecryptValue(fheType, ctHash)
-```
-
-**DecryptionResult States**:
-
-- `"no-data"`: No encrypted value provided
-- `"encrypted"`: Value is encrypted and ready for decryption
-- `"pending"`: Decryption is in progress
-- `"success"`: Decryption completed successfully with the decrypted value
-- `"error"`: Decryption failed with error message
-
-The hook automatically handles:
-
-- Initialization status checking
-- Account validation
-- Zero value handling (returns appropriate default values)
-- Error handling and state management
-- Automatic reset when the encrypted value changes
+A decentralized, onchain saving protocol inspired by Brazilian consórcios. Mandinga transforms the $150B+ consórcio model into a programmable, verifiable, and bankless global coordination system. Built on Arbitrum with Chainlink VRF for provably fair draws and Fhenix for private participant lists.
 
 ---
 
-## Scaffold-ETH 2
+![Mandinga Banner](./images/banner.png)
 
-<h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a> |
-  <a href="https://buidlguidl.com">BuidlGuidl</a>
-</h4>
+---
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain, built by [BuidlGuidl](https://buidlguidl.com/). It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+## 🐢 Why Mandinga?
 
-⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, Viem, and Typescript.
+**Saving circles work because of social trust. But trust doesn't appear from nowhere.**
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
+In Brazil, consórcios move more than **$150 billion per year**. The concept is simple: people commit to recurring payments (quotas), and one person is chosen each month to receive the full pot. This repeats until everyone has had their turn. It's one of the most successful financial coordination systems in the world — but it never became global.
 
-![Debug Contracts tab](https://github.com/scaffold-eth/scaffold-eth-2/assets/55535804/b237af0c-5027-4849-a5c1-2e31495cccb1)
+**Mandinga makes this model programmable, verifiable, and bankless.**
 
-## Requirements
+Traditional systems fail because:
+- They require centralized institutions to manage trust
+- They're geographically limited
+- They lack transparency in winner selection
+- They can't operate across borders or currencies
 
-Before you begin, you need to install the following tools:
+**Blockchain isn't just useful — it's essential.**  
+It's the **only infrastructure** that makes savings circles trust-minimized, globally accessible, and cryptographically fair.
 
-- [Node (>= v20.18.3)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
-- [Git](https://git-scm.com/downloads)
+---
 
-## Project Structure
+## 🐍 What It Does
 
-### Smart Contracts (`packages/hardhat/contracts/`)
 
-- **Raffle.sol**: Privacy-preserving raffle system with encrypted participant tracking using FHE
-- **MockUSDT.sol**: Mock USDT token for testing
+### Current Features (v0.1 — Raffle Bootstrap)
 
-### Frontend Components (`packages/nextjs/app/`)
+- **✅ Live Dashboard dApp**  
+  Real-time view of pot size, quotas sold, countdown to next draw, and your position.
 
-- **RaffleComponent.tsx**: Complete UI for the Raffle system
-- **useCofhe.ts**: React hooks for FHE operations
-- **useDecrypt.ts**: Utilities for decrypting encrypted values
+- **✅ Quota-Based Pooling**  
+  Users buy quotas with ETH. Your probability of winning is proportional to quotas owned: more quotas = higher chance.
 
-### Deployment Scripts (`packages/hardhat/deploy/`)
+- **✅ Chainlink Verified Draw**  
+  We use **Chainlink VRF v2.5** for verifiable randomness and direct on-chain state mutation. The winner is selected cryptographically — no manipulation possible.
 
-- **00_deploy_multicall3_only_HH.ts**: Deploys Multicall3 for local testing
-- **02_deploy_raffle.ts**: Deploys the Raffle contract
+- **✅ Winner Claim & Settlement**  
+  Every 7 days, the winner can claim the pot. This completes the first rotation and sets the foundation for consortium mechanics.
 
-## Development Workflow
+- **🔒 Private Participant Lists**  
+  Participant data is fully private using **Fhenix** encrypted execution. Your financial participation remains confidential.
 
-1. **Start Local Blockchain**:
-   ```bash
-   yarn chain
-   ```
+---
 
-2. **Deploy Contracts**:
-   ```bash
-   yarn deploy:local
-   ```
+## 🎯 The Roadmap: From Raffle to Consórcio
 
-3. **Start Frontend**:
-   ```bash
-   yarn start
-   ```
+### Why Start with a Raffle?
 
-4. **Run Tests**:
-   ```bash
-   yarn test
-   ```
+A consórcio is essentially **a series of raffles with the same participants plus commitment rules**. Our MVP raffle is not separate — it's the **v0.1 bootloader** of a saving circle.
 
-5. **Interact with Contracts**:
-   - Visit `http://localhost:3000` to use the web interface
-   - Visit `http://localhost:3000/debug` for the debug contracts page
+We begin with a provably fair draw where people buy quotas and Chainlink VRF selects a winner. This creates:
+- **Commitment**: Users put skin in the game
+- **Participation history**: Reputation and trust building
+- **Financial engagement**: An active user base ready for recurring coordination
 
-## Customization
+### v1: Consortium Phase
 
-- Edit smart contracts in `packages/hardhat/contracts`
-- Edit frontend components in `packages/nextjs/app`
-- Edit deployment scripts in `packages/hardhat/deploy`
-- Configure networks (including Arbitrum) in `packages/nextjs/scaffold.config.ts`
-- Configure Chainlink VRF settings in `packages/hardhat/deploy/02_deploy_raffle.ts`
+- **Sequential draws** until all members have won
+- **Past winners keep paying** until everyone receives their benefit
+- **Mandatory participation** rules enforced by smart contracts
+- **No centralized entity** needed — pure code coordination
 
-## Documentation
+### v2+: Advanced Features
 
-Visit our [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
+- **Stylus SBT Ritual Receipts**: On-chain reputation for participation history
+- **Orbit-based isolated circles**: Community or geography-specific saving groups
+- **Liquid quotas**: Cash out your participation if someone else enters in your place
+- **Stylus-based on-chain SVG receipts**: Beautiful, portable proof of participation
 
-To know more about its features, check out our [website](https://scaffoldeth.io).
+---
 
-## Contributing to Scaffold-ETH 2
+## 📋 Feature Examples
 
-We welcome contributions to Scaffold-ETH 2!
+### ✅ Raffle Entry (v0.1)  
+> _Fair, transparent, and accessible to anyone with ETH._
 
-Please see [CONTRIBUTING.MD](https://github.com/scaffold-eth/scaffold-eth-2/blob/main/CONTRIBUTING.md) for more information and guidelines for contributing to Scaffold-ETH 2.
+**Maria** wants to save for a down payment but can't access traditional savings vehicles in her country. She joins a Mandinga raffle with $500 and receives 5 quotas.  
+
+The pot reaches $10,000 with 100 total quotas sold. Maria has a **5% chance** of winning this round. When the draw happens, Chainlink VRF selects the winner on-chain — provably random, impossible to manipulate.
+
+If Maria wins, she claims $10,000. If not, she keeps her quotas active for future rounds.
+
+---
+
+### 🔄 Consortium Commitment (v1)  
+> _Everyone wins eventually. No one is left behind._
+
+**João** joins a 12-month consortium with 24 members. Each member commits to $500/month. The pot is $12,000 every month.
+
+- **Month 1**: João buys 2 quotas. The VRF selects another member as winner.
+- **Month 3**: João wins! He receives $12,000 but must keep paying $500/month.
+- **Month 12**: The last member wins. The circle completes. Everyone received $12,000 by paying $6,000 total.
+
+This is **collective liquidity** — turning small recurring payments into large lump sums through programmatic coordination.
+
+---
+
+## ⚙️ How It Works  
+
+### 🔧 Tech Stack
+
+- **Arbitrum Network** — Low-cost, high-throughput EVM chain for accessible participation
+- **Chainlink VRF v2.5** — Verifiable randomness for fair winner selection with direct state mutation
+- **Fhenix** — Encrypted execution for private participant lists and confidential financial data
+- **Hardhat** — Development environment for testing and deployment
+- **Solidity** — Core smart contract logic for quotas, draws, and settlements
+
+### 🔐 Key Contracts
+
+- **`ConsortiumCore.sol`** — Main raffle logic, quota management, winner settlement
+- **`RandomnessOracle.sol`** — Chainlink VRF integration and callback handling
+  - `fulfillRandomWords()` — Receives VRF output and triggers state mutation
+  - `ConsortiumCore.fulfillRandomness(uint256)` — Sets winner based on VRF result
+
+> ✅ We use **Chainlink VRF v2.5** to mutate on-chain state directly after randomness fulfillment.  
+> 🔒 We use **Fhenix** to keep participant lists fully encrypted on-chain.
+
+---
+
+## 🚧 Roadmap: Work in Progress
+
+We believe in the long-term potential of this protocol. Our vision extends far beyond the current raffle:
+
+- **📜 Consortium Contract**  
+  Multi-round draws with mandatory payment enforcement until all members win.
+
+- **🎖️ Stylus SBT Ritual Receipts**  
+  On-chain reputation system for participation history and commitment tracking.
+
+- **🌍 Orbit-Based Isolated Circles**  
+  Community-specific or geography-specific saving groups using Arbitrum Orbit.
+
+- **🔒 Privacy-Optional Execution**  
+  Deeper integration with Zama or Fhenix for fully confidential consortium operations.
+
+- **💧 Liquid Quotas**  
+  Secondary market for quotas — exit your position if someone else enters in your place.
+
+- **🎨 On-Chain SVG Receipts**  
+  Beautiful, portable, Stylus-based participation proofs as SBTs.
+
+---
+
+## 🏆 Hackathon Bounties
+
+This project qualifies for:
+
+### **Arbitrum**  
+Mandinga is **fully deployed on Arbitrum**. Our protocol creates a new on-chain saving primitive that fits DeFi, payments, and financial coordination use cases. We also position ourselves to use **Arbitrum Orbit** later to isolate saving circles per community or geography.
+
+### **Build Guidl / Scaffold-ETH**  
+Mandinga is an **approachable dApp for non-traders**. We care about real users saving together, not just developers optimizing yield. Our frontend is simple, emotional, and accessible — fitting Build Guidl's goals: **technical completeness plus UX effectiveness**.
+
+### **Chainlink**  
+We use **Chainlink VRF v2.5** inside the contract to mutate on-chain state. This is visible in:
+- `RandomnessOracle.sol::fulfillRandomWords()`
+- `ConsortiumCore.sol::fulfillRandomness(uint256)` — which sets the winner
+
+### **Fhenix**  
+Participant lists in saving circles are **sensitive financial data**. This list of participants is **fully private using Fhenix**. This aligns with Fhenix's encrypted execution goals and ensures users maintain financial privacy.
+
+---
+
+## 🌐 Deployments
+
+* **GitHub Repo**: [mandinga-ethlatam](https://github.com/Milbaxter/mandinga-ethlatam)
+* **Live Frontend**: [mandinga.vercel.app](https://mandinga.vercel.app) *(placeholder)*
+* **Pitch Deck**: [View Presentation](https://pitch.link) *(placeholder)*
+* **Demo Video**: [Watch Demo](https://youtube.link) *(placeholder)*
+
+---
+
+## 🧠 Team
+
+Built by a team passionate about financial inclusion, cryptographic fairness, and onchain coordination:
+
+- **zevictor** 
+- **Lu1z.eth** 
+- **milbaxter** 
+
+---
+
+## 🛠️ Getting Started
+
+### Prerequisites
+
+```bash
+node >= 18.x
+npm or yarn
+hardhat
+```
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/Milbaxter/mandinga-ethlatam
+cd mandinga-ethlatam
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Add your Arbitrum RPC, Chainlink VRF subscription, Fhenix keys
+
+# Compile contracts
+npx hardhat compile
+
+# Run tests
+npx hardhat test
+
+# Deploy to Arbitrum testnet
+npx hardhat run scripts/deploy.js --network arbitrum-sepolia
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 📖 Documentation
+
+### How to Join a Raffle
+
+1. Connect your wallet (MetaMask, WalletConnect, etc.)
+2. View current pot size and countdown
+3. Buy quotas with ETH (1 quota = $X)
+4. Wait for the draw (automatic via Chainlink VRF)
+5. If you win, claim your pot!
+
+### How Quotas Work
+
+- **1 quota = 1 entry** in the raffle
+- **Your probability = your quotas / total quotas**
+- Example: 5 quotas out of 100 total = 5% chance
+
+### How VRF Selection Works
+
+1. Draw time arrives (e.g., every 7 days)
+2. Contract requests randomness from Chainlink VRF
+3. VRF returns verifiable random number
+4. Contract calculates winner based on random number + quota distribution
+5. Winner is set on-chain, immutable and auditable
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+### Areas We Need Help
+
+- Frontend improvements (React, design system)
+- Smart contract optimizations
+- Documentation and tutorials
+- Community building and outreach
+- Translations (especially Portuguese!)
+
+---
+
+## 📜 License
+
+MIT License — see [LICENSE](./LICENSE) for details.
+
+---
+
+## 💬 Community
+
+- **Discord**: [Join our server](https://discord.link) *(placeholder)*
+- **Twitter**: [@mandingaprotocol](https://twitter.link) *(placeholder)*
+- **Telegram**: [Mandinga Community](https://t.me/link) *(placeholder)*
+
+---
+
+> _Built during ETHLatam 2025 — for everyone who believes financial coordination should be fair, accessible, and onchain._
+
+---
+
+## 🌱 The Vision
+
+Mandinga is more than a raffle. It's the foundation for a new kind of financial primitive:
+
+**Programmable saving circles that work globally, trustlessly, and transparently.**
+
+In the future, communities will coordinate capital without banks, borders, or intermediaries. Mandinga is the first step toward that world.
+
+**Luck gets you in. Commitment gets everyone out.**
