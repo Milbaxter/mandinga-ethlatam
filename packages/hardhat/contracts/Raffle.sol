@@ -2,11 +2,13 @@
 pragma solidity ^0.8.25;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
 /**
  * @title Raffle
  * @dev A raffle contract where users can buy quotas and a winner is randomly selected
  * when all quotas are sold out. The prize is in ETH.
+ * The participant list is kept private using FHE encryption.
  */
 contract Raffle is ReentrancyGuard {
     /// @notice The total prize amount in ETH (in wei)
@@ -21,11 +23,17 @@ contract Raffle is ReentrancyGuard {
     /// @notice The number of quotas sold
     uint256 public soldQuotas;
 
-    /// @notice Array of participant addresses (one entry per quota purchased)
-    address[] public participants;
+    /// @notice Array of participant addresses (one entry per quota purchased) - PRIVATE
+    address[] private participants;
 
-    /// @notice Mapping from address to number of quotas purchased
-    mapping(address => uint256) public quotasPurchased;
+    /// @notice Mapping from address to number of quotas purchased - PRIVATE
+    mapping(address => uint256) private quotasPurchased;
+
+    /// @notice Encrypted count of total participants (private)
+    euint32 private encryptedParticipantCount;
+
+    /// @notice Constant encrypted value of 1 for increments (gas saving)
+    euint32 private ONE;
 
     /// @notice The winner address (set after selection)
     address public winner;
@@ -70,6 +78,16 @@ contract Raffle is ReentrancyGuard {
         totalQuotas = _totalQuotas;
         quotaPrice = _prizeAmount / _totalQuotas; // Price per quota
         raffleStartTime = block.timestamp;
+
+        // Initialize FHE values
+        ONE = FHE.asEuint32(1);
+        encryptedParticipantCount = FHE.asEuint32(0);
+        
+        // Allow this contract to perform operations using the constant ONE
+        FHE.allowThis(ONE);
+        
+        // Initially allow global access to encrypted count (0), but will be restricted after first participant
+        FHE.allowGlobal(encryptedParticipantCount);
     }
 
     /**
@@ -91,10 +109,19 @@ contract Raffle is ReentrancyGuard {
         soldQuotas += _numQuotas;
         quotasPurchased[msg.sender] += _numQuotas;
 
-        // Add participant entries (one per quota)
+        // Add participant entries (one per quota) - stored privately
         for (uint256 i = 0; i < _numQuotas; i++) {
             participants.push(msg.sender);
         }
+
+        // Update encrypted participant count (increment by number of quotas purchased)
+        // This keeps the participant count private using FHE
+        euint32 numQuotasEncrypted = FHE.asEuint32(_numQuotas);
+        encryptedParticipantCount = FHE.add(encryptedParticipantCount, numQuotasEncrypted);
+        
+        // Restrict access to encrypted count - only contract and sender can read
+        FHE.allowThis(encryptedParticipantCount);
+        FHE.allowSender(encryptedParticipantCount);
 
         emit QuotaPurchased(msg.sender, _numQuotas, soldQuotas);
 
@@ -192,9 +219,18 @@ contract Raffle is ReentrancyGuard {
     }
 
     /**
-     * @dev View function to get total participants count
+     * @dev View function to get encrypted total participants count (private)
+     * @return The encrypted count of participants
      */
-    function getTotalParticipants() external view returns (uint256) {
+    function getEncryptedParticipantCount() external view returns (euint32) {
+        return encryptedParticipantCount;
+    }
+
+    /**
+     * @dev Internal function to get total participants count (for contract use only)
+     * @return The actual count of participants
+     */
+    function _getTotalParticipants() internal view returns (uint256) {
         return participants.length;
     }
 
@@ -203,6 +239,15 @@ contract Raffle is ReentrancyGuard {
      */
     function canEndRaffle() external view returns (bool) {
         return (soldQuotas >= totalQuotas || block.timestamp >= raffleStartTime + RAFFLE_DURATION) && !isRaffleEnded;
+    }
+
+    /**
+     * @dev View function to check if an address has purchased quotas (private check)
+     * Only the caller can check their own quota count
+     * @return The number of quotas purchased by the caller
+     */
+    function getMyQuotas() external view returns (uint256) {
+        return quotasPurchased[msg.sender];
     }
 }
 

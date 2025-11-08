@@ -898,7 +898,7 @@ const deployedContracts = {
       inheritedFunctions: {},
     },
     Raffle: {
-      address: "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+      address: "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
       abi: [
         {
           inputs: [
@@ -954,6 +954,17 @@ const deployedContracts = {
         {
           inputs: [],
           name: "ReentrancyGuardReentrantCall",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "int32",
+              name: "value",
+              type: "int32",
+            },
+          ],
+          name: "SecurityZoneOutOfBounds",
           type: "error",
         },
         {
@@ -1072,6 +1083,32 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "getEncryptedParticipantCount",
+          outputs: [
+            {
+              internalType: "euint32",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getMyQuotas",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "getRaffleInfo",
           outputs: [
             {
@@ -1120,44 +1157,12 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "getTotalParticipants",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
           name: "isRaffleEnded",
           outputs: [
             {
               internalType: "bool",
               name: "",
               type: "bool",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          name: "participants",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
             },
           ],
           stateMutability: "view",
@@ -1179,25 +1184,6 @@ const deployedContracts = {
         {
           inputs: [],
           name: "quotaPrice",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "quotasPurchased",
           outputs: [
             {
               internalType: "uint256",
