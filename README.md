@@ -173,7 +173,7 @@ Participant lists in saving circles are **sensitive financial data**. This list 
 
 * **GitHub Repo**: [mandinga-ethlatam](https://github.com/Milbaxter/mandinga-ethlatam)
 * **Live Frontend**: [mandinga.vercel.app](https://mandinga.vercel.app) *(placeholder)*
-* **Pitch Deck**: [View Presentation](https://pitch.link) *(placeholder)*
+* **Pitch Deck**: [[View Presentation](https://www.figma.com/slides/TkWbKgdayNwy2gGkU5rN0r/Mandinga?node-id=1-266&t=Mxe2dIlkpDCBihwa-1)] *(placeholder)*
 * **Demo Video**: [Watch Demo](https://youtube.link) *(placeholder)*
 
 ---
