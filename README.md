@@ -6,9 +6,25 @@ Scaffold-ETH 2 (Now With CoFHE)
 
 # CoFHE Scaffold-ETH 2 Documentation
 
-## QuickStart
+## Overview
 
-The CoFHE Scaffold-ETH 2 template adds support for Fully Homomorphic Encryption (FHE) operations to the standard Scaffold-ETH 2 template.
+The CoFHE Scaffold-ETH 2 template adds support for Fully Homomorphic Encryption (FHE) operations to the standard Scaffold-ETH 2 template. This project demonstrates practical applications of FHE in smart contracts, including:
+
+### Featured Contracts
+
+1. **FHECounter**: A simple encrypted counter demonstrating FHE arithmetic operations
+   - Encrypted value storage and operations
+   - Private increments, decrements, and updates
+   - Access control demonstration
+
+2. **Raffle**: A privacy-preserving raffle system using FHE encryption
+   - **Privacy-First Design**: Participant count encrypted using FHE
+   - **Quota-Based System**: Users can purchase multiple quotas
+   - **Automatic Winner Selection**: Triggered when all quotas are sold
+   - **Time-Based Selection**: Manual selection available after 7 days
+   - **Secure Prize Distribution**: ETH prize claiming with reentrancy protection
+
+## QuickStart
 
 To get up and testing, clone and open the repo, then:
 
@@ -18,7 +34,7 @@ To get up and testing, clone and open the repo, then:
 yarn chain
 ```
 
-2. Deploy `FHECounter.sol`
+2. Deploy contracts (FHECounter and Raffle)
 
 ```bash
 yarn deploy:local
@@ -30,7 +46,9 @@ yarn deploy:local
 yarn start
 ```
 
-4. Open the dApp, and start exploring the FHECounter.
+4. Open the dApp at `http://localhost:3000` and explore:
+   - **FHECounter**: Encrypted counter operations
+   - **Raffle**: Privacy-preserving raffle system
 
 ## Integrated Tools
 
@@ -75,7 +93,9 @@ yarn start
 3. **[Multicall3 Deployment](packages/hardhat/deploy/00_deploy_multicall.ts)**:
    The Multicall3 contract is deployed on the hardhat node to support the `useReadContracts` hook from viem. This allows efficient batch reading of contract data in the mock environment.
 
-### Writing an FHE Contract
+## Smart Contracts
+
+### FHECounter Contract
 
 The [`FHECounter.sol`](packages/hardhat/contracts/FHECounter.sol) contract demonstrates the use of Fully Homomorphic Encryption (FHE) to perform encrypted arithmetic operations. The counter value is stored in encrypted form, allowing for private increments, decrements, and value updates.
 
@@ -148,6 +168,57 @@ Key concepts in FHE contract development:
    - `FHE.allowSender(value)`: Allow the transaction sender to read the value
    - `FHE.allowGlobal(value)`: Allow anyone to read the value
    - Access control must be explicitly set after each operation that modifies an encrypted value
+
+### Raffle Contract
+
+The [`Raffle.sol`](packages/hardhat/contracts/Raffle.sol) contract demonstrates a privacy-preserving raffle system using FHE encryption. Key features include:
+
+- **Private Participant Tracking**: Participant count is stored in encrypted form using FHE
+- **Quota-Based System**: Users can purchase multiple quotas to increase their chances
+- **Automatic Winner Selection**: Winner is automatically selected when all quotas are sold
+- **Time-Based Selection**: Winner can be manually selected after 7 days if quotas aren't sold out
+- **Prize Distribution**: Winners can claim their ETH prize after selection
+
+#### Key Features:
+
+1. **Encrypted Participant Count**:
+   ```solidity
+   euint32 private encryptedParticipantCount;
+   ```
+   The total number of participants is kept private using FHE encryption, ensuring participant privacy.
+
+2. **Quota Purchase System**:
+   - Users can buy multiple quotas at a fixed price per quota
+   - Each quota purchased increases the user's chances of winning
+   - The participant list is stored privately on-chain
+
+3. **Winner Selection**:
+   - Automatically triggered when all quotas are sold
+   - Can be manually triggered after 7 days if quotas aren't sold out
+   - Uses pseudo-random number generation (can be upgraded to Chainlink VRF for production)
+
+4. **Prize Claiming**:
+   - Only the selected winner can claim the prize
+   - Prize is distributed in ETH
+   - Includes reentrancy protection
+
+#### Example Usage:
+
+```solidity
+// Buy quotas
+raffle.buyQuota(10, { value: quotaPrice * 10 });
+
+// Check raffle status
+(uint256 prize, uint256 total, uint256 sold, ...) = raffle.getRaffleInfo();
+
+// Select winner manually (after 7 days or when all quotas sold)
+raffle.selectWinner();
+
+// Winner claims prize
+raffle.claimPrize();
+```
+
+The Raffle contract demonstrates how FHE can be used to maintain privacy in applications where participant information should remain confidential while still allowing transparent winner selection and prize distribution.
 
 ### Testing your FHE Contract
 
@@ -287,7 +358,9 @@ The portal displays:
 - **Active Permit**: Displays details about the currently active permit including name, ID, issuer, and expiration
 - **Permit Management**: Allows users to create new permits, switch between existing permits, and delete unused permits
 
-### FHE Counter Component
+### Frontend Components
+
+#### FHECounter Component
 
 The [`FHECounterComponent`](packages/nextjs/app/FHECounterComponent.tsx) demonstrates how to interact with FHE-enabled smart contracts in a React application:
 
@@ -330,6 +403,24 @@ The [`FHECounterComponent`](packages/nextjs/app/FHECounterComponent.tsx) demonst
 const encryptedResult = await cofhesdkClient.encryptInputs([encryptable]).encrypt();
 // encryptedResult is a result object with success status and data/error
 ```
+
+#### Raffle Component
+
+The [`RaffleComponent`](packages/nextjs/app/RaffleComponent.tsx) provides a complete UI for interacting with the Raffle contract:
+
+**Features:**
+- Display raffle information (prize amount, total quotas, sold quotas, etc.)
+- Buy quotas with ETH
+- View user's purchased quotas
+- Select winner (when conditions are met)
+- Claim prize (for winners)
+- Real-time balance and quota tracking
+
+**Key Interactions:**
+- Uses `useScaffoldReadContract` to read raffle state
+- Uses `useScaffoldWriteContract` for quota purchases and winner selection
+- Displays encrypted participant count using FHE decryption
+- Shows time remaining until manual selection is available
 
 ### Permit Modal
 
@@ -504,46 +595,59 @@ Before you begin, you need to install the following tools:
 - Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
 - [Git](https://git-scm.com/downloads)
 
-## Quickstart
+## Project Structure
 
-To get started with Scaffold-ETH 2, follow the steps below:
+### Smart Contracts (`packages/hardhat/contracts/`)
 
-1. Install dependencies if it was skipped in CLI:
+- **FHECounter.sol**: Simple encrypted counter demonstrating FHE operations
+- **Raffle.sol**: Privacy-preserving raffle system with encrypted participant tracking
+- **MockUSDT.sol**: Mock USDT token for testing
 
-```
-cd my-dapp-example
-yarn install
-```
+### Frontend Components (`packages/nextjs/app/`)
 
-2. Run a local network in the first terminal:
+- **FHECounterComponent.tsx**: UI for interacting with the FHE Counter contract
+- **RaffleComponent.tsx**: Complete UI for the Raffle system
+- **useCofhe.ts**: React hooks for FHE operations
+- **useDecrypt.ts**: Utilities for decrypting encrypted values
 
-```
-yarn chain
-```
+### Deployment Scripts (`packages/hardhat/deploy/`)
 
-This command starts a local Ethereum network using Hardhat. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `packages/hardhat/hardhat.config.ts`.
+- **00_deploy_multicall3_only_HH.ts**: Deploys Multicall3 for local testing
+- **01_deploy_fhe_counter.ts**: Deploys the FHECounter contract
+- **02_deploy_raffle.ts**: Deploys the Raffle contract
 
-3. On a second terminal, deploy the test contract:
+## Development Workflow
 
-```
-yarn deploy
-```
+1. **Start Local Blockchain**:
+   ```bash
+   yarn chain
+   ```
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/hardhat/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/hardhat/deploy` to deploy the contract to the network. You can also customize the deploy script.
+2. **Deploy Contracts**:
+   ```bash
+   yarn deploy:local
+   ```
 
-4. On a third terminal, start your NextJS app:
+3. **Start Frontend**:
+   ```bash
+   yarn start
+   ```
 
-```
-yarn start
-```
+4. **Run Tests**:
+   ```bash
+   yarn test
+   ```
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+5. **Interact with Contracts**:
+   - Visit `http://localhost:3000` to use the web interface
+   - Visit `http://localhost:3000/debug` for the debug contracts page
 
-Run smart contract test with `yarn hardhat:test`
+## Customization
 
-- Edit your smart contracts in `packages/hardhat/contracts`
-- Edit your frontend homepage at `packages/nextjs/app/page.tsx`. For guidance on [routing](https://nextjs.org/docs/app/building-your-application/routing/defining-routes) and configuring [pages/layouts](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts) checkout the Next.js documentation.
-- Edit your deployment scripts in `packages/hardhat/deploy`
+- Edit smart contracts in `packages/hardhat/contracts`
+- Edit frontend components in `packages/nextjs/app`
+- Edit deployment scripts in `packages/hardhat/deploy`
+- Configure networks in `packages/nextjs/scaffold.config.ts`
 
 ## Documentation
 
