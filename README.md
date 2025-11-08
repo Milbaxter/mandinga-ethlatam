@@ -4,6 +4,15 @@
 
 The CoFHE Scaffold-ETH 2 template adds support for Fully Homomorphic Encryption (FHE) operations to the standard Scaffold-ETH 2 template. This project demonstrates a **privacy-preserving Raffle system** that uses FHE encryption to keep participant data confidential while maintaining transparent winner selection and prize distribution.
 
+## Built With
+
+This project leverages cutting-edge blockchain technologies:
+
+- **[Scaffold-ETH 2](https://scaffoldeth.io)** - An open-source toolkit for building decentralized applications, built by [BuidlGuidl](https://buidlguidl.com/)
+- **[Fhenix](https://fhenix.io)** - Fully Homomorphic Encryption (FHE) protocol enabling privacy-preserving smart contract operations
+- **[Chainlink VRF](https://chain.link/vrf)** - Verifiable Random Function for provably fair random winner selection
+- **[Arbitrum](https://arbitrum.io)** - Layer 2 scaling solution for Ethereum, supported as a deployment target
+
 ### Raffle Contract Features
 
 - **Privacy-First Design**: Participant count encrypted using FHE, ensuring participant privacy
@@ -43,15 +52,30 @@ yarn start
 
 ## Integrated Tools
 
-- Hardhat
+### Core Technologies
 
+- **Scaffold-ETH 2** - Built with NextJS, RainbowKit, Hardhat, Wagmi, Viem, and TypeScript
+- **Fhenix CoFHE** - Fully Homomorphic Encryption SDK and contracts for privacy-preserving operations
+- **Chainlink VRF v2** - Verifiable Random Function for provably fair randomness
+- **Arbitrum** - Layer 2 network support for scalable deployments
+
+### Fhenix CoFHE Packages
+
+- **Hardhat**:
   - `@fhenixprotocol/cofhe-contracts` - Package containing `FHE.sol`. `FHE.sol` is a library that exposes FHE arithmetic operations like `FHE.add` and `FHE.mul` along with access control functions.
   - `@cofhe/mock-contracts` - The CoFHE coprocessor exists off-chain. `@cofhe/mock-contracts` are a fully on-chain drop-in replacement for the off-chain components. These mocks allow better developer and testing experience when working with FHE. Is transparently used as a dependency of `@cofhe/hardhat-plugin`
   - `@cofhe/hardhat-plugin` - A hardhat plugin responsible for deploying the mock contracts on the hardhat network and during tests. Also exposes testing utility functions in `hre.cofhesdk.___`.
   - `@cofhe/sdk` - Primary connection to the CoFHE coprocessor. Exposes functions like `encryptInputs` (for sealing) and `decryptHandle` (for unsealing). Manages access permits. Automatically plays nicely with the mock environment.
 
-- Nextjs
+- **NextJS**:
   - `@cofhe/sdk` - Primary connection to the CoFHE coprocessor. Exposes functions like `encryptInputs` (for sealing) and `decryptHandle` (for unsealing). Manages access permits. Automatically plays nicely with the mock environment.
+
+### Chainlink Integration
+
+- **Chainlink VRF v2** - Used in the Raffle contract for provably fair random winner selection
+  - Requires a Chainlink VRF subscription with sufficient LINK balance
+  - Configured for Sepolia, Arbitrum Sepolia, and other supported networks
+  - See deployment scripts for network-specific VRF configuration
 
 ## Working with FHE Smart Contracts
 
@@ -112,7 +136,7 @@ The [`Raffle.sol`](packages/hardhat/contracts/Raffle.sol) contract demonstrates 
 3. **Winner Selection**:
    - Automatically triggered when all quotas are sold
    - Can be manually triggered after 7 days if quotas aren't sold out
-   - Uses pseudo-random number generation (can be upgraded to Chainlink VRF for production)
+   - Uses **Chainlink VRF v2** for provably fair random winner selection
 
 4. **Prize Claiming**:
    - Only the selected winner can claim the prize
@@ -409,10 +433,11 @@ The hook automatically handles:
 
 <h4 align="center">
   <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
+  <a href="https://scaffoldeth.io">Website</a> |
+  <a href="https://buidlguidl.com">BuidlGuidl</a>
 </h4>
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain, built by [BuidlGuidl](https://buidlguidl.com/). It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
 
 ⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, Viem, and Typescript.
 
@@ -481,7 +506,8 @@ Before you begin, you need to install the following tools:
 - Edit smart contracts in `packages/hardhat/contracts`
 - Edit frontend components in `packages/nextjs/app`
 - Edit deployment scripts in `packages/hardhat/deploy`
-- Configure networks in `packages/nextjs/scaffold.config.ts`
+- Configure networks (including Arbitrum) in `packages/nextjs/scaffold.config.ts`
+- Configure Chainlink VRF settings in `packages/hardhat/deploy/02_deploy_raffle.ts`
 
 ## Documentation
 
