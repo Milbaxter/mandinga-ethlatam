@@ -1,10 +1,4 @@
-# 🏗 COFHE Scaffold-ETH 2
-
-Scaffold-ETH 2 (Now With CoFHE)
-
-### CoFHE: https://cofhe-docs.fhenix.zone/docs/devdocs/overview
-
-# CoFHE Scaffold-ETH 2 Documentation
+# 🏗 MANDINGA RAFFLE
 
 ## Overview
 
