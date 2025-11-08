@@ -8,21 +8,16 @@ Scaffold-ETH 2 (Now With CoFHE)
 
 ## Overview
 
-The CoFHE Scaffold-ETH 2 template adds support for Fully Homomorphic Encryption (FHE) operations to the standard Scaffold-ETH 2 template. This project demonstrates practical applications of FHE in smart contracts, including:
+The CoFHE Scaffold-ETH 2 template adds support for Fully Homomorphic Encryption (FHE) operations to the standard Scaffold-ETH 2 template. This project demonstrates a **privacy-preserving Raffle system** that uses FHE encryption to keep participant data confidential while maintaining transparent winner selection and prize distribution.
 
-### Featured Contracts
+### Raffle Contract Features
 
-1. **FHECounter**: A simple encrypted counter demonstrating FHE arithmetic operations
-   - Encrypted value storage and operations
-   - Private increments, decrements, and updates
-   - Access control demonstration
-
-2. **Raffle**: A privacy-preserving raffle system using FHE encryption
-   - **Privacy-First Design**: Participant count encrypted using FHE
-   - **Quota-Based System**: Users can purchase multiple quotas
-   - **Automatic Winner Selection**: Triggered when all quotas are sold
-   - **Time-Based Selection**: Manual selection available after 7 days
-   - **Secure Prize Distribution**: ETH prize claiming with reentrancy protection
+- **Privacy-First Design**: Participant count encrypted using FHE, ensuring participant privacy
+- **Quota-Based System**: Users can purchase multiple quotas to increase their chances of winning
+- **Automatic Winner Selection**: Winner is automatically selected when all quotas are sold
+- **Time-Based Selection**: Manual selection available after 7 days if quotas aren't sold out
+- **Secure Prize Distribution**: ETH prize claiming with reentrancy protection
+- **Transparent Operations**: Winner selection and prize distribution remain verifiable on-chain
 
 ## QuickStart
 
@@ -34,7 +29,7 @@ To get up and testing, clone and open the repo, then:
 yarn chain
 ```
 
-2. Deploy contracts (FHECounter and Raffle)
+2. Deploy the Raffle contract
 
 ```bash
 yarn deploy:local
@@ -46,9 +41,11 @@ yarn deploy:local
 yarn start
 ```
 
-4. Open the dApp at `http://localhost:3000` and explore:
-   - **FHECounter**: Encrypted counter operations
-   - **Raffle**: Privacy-preserving raffle system
+4. Open the dApp at `http://localhost:3000` and explore the **Raffle** system:
+   - Buy quotas with ETH
+   - View raffle status and participant count (encrypted)
+   - Select winner when conditions are met
+   - Claim prize as the winner
 
 ## Integrated Tools
 
@@ -94,80 +91,6 @@ yarn start
    The Multicall3 contract is deployed on the hardhat node to support the `useReadContracts` hook from viem. This allows efficient batch reading of contract data in the mock environment.
 
 ## Smart Contracts
-
-### FHECounter Contract
-
-The [`FHECounter.sol`](packages/hardhat/contracts/FHECounter.sol) contract demonstrates the use of Fully Homomorphic Encryption (FHE) to perform encrypted arithmetic operations. The counter value is stored in encrypted form, allowing for private increments, decrements, and value updates.
-
-```solidity
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
-
-import "@fhenixprotocol/cofhe-contracts/FHE.sol";
-
-contract FHECounter {
-    /// @notice The encrypted counter value
-    euint32 public count;
-
-    /// @notice A constant encrypted value of 1 used for increments/decrements (gas saving)
-    euint32 private ONE;
-
-    constructor() {
-        ONE = FHE.asEuint32(1);
-        count = FHE.asEuint32(0);
-
-        // Allows anyone to read the initial encrypted value (0)
-        // Also allows anyone to perform an operation USING the initial value
-        FHE.allowGlobal(count);
-
-        // Allows this contract to perform operations using the constant ONE
-        FHE.allowThis(ONE);
-    }
-
-    function increment() public {
-        // Performs an encrypted addition of count and ONE
-        count = FHE.add(count, ONE);
-
-        // Only this contract and the sender can read the new value
-        FHE.allowThis(count);
-        FHE.allowSender(count);
-    }
-
-    function decrement() public {
-        count = FHE.sub(count, ONE);
-        FHE.allowThis(count);
-        FHE.allowSender(count);
-    }
-
-    function set(InEuint32 memory value) public {
-        count = FHE.asEuint32(value);
-        FHE.allowThis(count);
-        FHE.allowSender(count);
-    }
-}
-```
-
-Key concepts in FHE contract development:
-
-1. **Encrypted Types**:
-
-   - Use `euint32`, `ebool`, etc. for encrypted values
-   - These types support FHE operations while keeping values private
-
-2. **FHE Operations**:
-
-   - `FHE.add(a, b)`: Add two encrypted values
-   - `FHE.sub(a, b)`: Subtract encrypted values
-   - `FHE.mul(a, b)`: Multiply encrypted values
-   - `FHE.div(a, b)`: Divide encrypted values
-   - See `FHE.sol` for the full list of available operations
-
-3. **Access Control**:
-   - `FHE.allow(value, address)`: Allow `address` to read the value
-   - `FHE.allowThis(value)`: Allow the contract to read the value
-   - `FHE.allowSender(value)`: Allow the transaction sender to read the value
-   - `FHE.allowGlobal(value)`: Allow anyone to read the value
-   - Access control must be explicitly set after each operation that modifies an encrypted value
 
 ### Raffle Contract
 
@@ -220,88 +143,52 @@ raffle.claimPrize();
 
 The Raffle contract demonstrates how FHE can be used to maintain privacy in applications where participant information should remain confidential while still allowing transparent winner selection and prize distribution.
 
-### Testing your FHE Contract
+### FHE Concepts Used in Raffle
 
-The [`FHECounter.test.ts`](packages/hardhat/test/FHECounter.test.ts) file demonstrates testing FHE contracts using the mock environment. Before using `cofhesdkClient.encryptInput` to prepare input variables, or `cofhesdkClient.decryptHandle` to read encrypted data, cofhe must be initialized and connected. In a hardhat environment there is an exposed utility function:
+The Raffle contract uses FHE encryption to keep participant data private. Key FHE concepts:
+
+1. **Encrypted Types**:
+   - `euint32`: Encrypted unsigned 32-bit integer
+   - Used to store the participant count in encrypted form
+
+2. **FHE Operations**:
+   - `FHE.add(a, b)`: Add two encrypted values
+   - `FHE.asEuint32(value)`: Convert plaintext to encrypted value
+   - See `FHE.sol` for the full list of available operations
+
+3. **Access Control**:
+   - `FHE.allowThis(value)`: Allow the contract to read the value
+   - `FHE.allowSender(value)`: Allow the transaction sender to read the value
+   - `FHE.allowGlobal(value)`: Allow anyone to read the value
+   - Access control must be explicitly set after each operation that modifies an encrypted value
+
+### Testing the Raffle Contract
+
+To test the Raffle contract with FHE encryption, you need to initialize the CoFHE SDK client:
 
 ```typescript
 const [bob] = await hre.ethers.getSigners()
 
-// `hre.cofhesdk.createBatteriesIncludedCofhesdkClient` is used to initialize FHE with a Hardhat signer
-// Initialization is required before any `encrypt` or `decrypt` operations can be performed
-// `createBatteriesIncludedCofhesdkClient` is a helper function that initializes FHE with a Hardhat signer
-// Returns a `Promise<CofhesdkClient>` type.
-
+// Initialize FHE with a Hardhat signer
 const client = await hre.cofhesdk.createBatteriesIncludedCofhesdkClient(bob);
-
 ```
 
-To verify the value of an encrypted variable, we can use:
+To verify encrypted values in tests:
 
 ```typescript
-// Get the encrypted count variable
-const count = await counter.count();
+// Get the encrypted participant count
+const encryptedCount = await raffle.getEncryptedParticipantCount();
 
-// `hre.cofhesdk.mocks.expectPlaintext` is used to verify that the encrypted value is 0
-// This uses the encrypted variable `count` and retrieves the plaintext value from the on-chain mock contracts
-// This kind of test can only be done in a mock environment where the plaintext value is known
-await hre.cofhesdk.mocks.expectPlaintext(count, 0n);
+// Verify the encrypted value (only works in mock environment)
+await hre.cofhesdk.mocks.expectPlaintext(encryptedCount, expectedValue);
 ```
 
-To read the encrypted variable directly, we can use `cofhesdkClient.decryptHandle`:
+To decrypt encrypted values:
 
 ```typescript
-const count = await counter.count();
-
-// `decryptHandle` is used to unseal the encrypted value
-// the client must be initialized and connected before `unseal` can be called
-const unsealedResult = await client.decryptHandle(count, FheTypes.Uint32).decrypt();
+const encryptedCount = await raffle.getEncryptedParticipantCount();
+const decryptedResult = await client.decryptHandle(encryptedCount, FheTypes.Uint32).decrypt();
 ```
-
-To encrypt a variable for use as an `InEuint*` we can use `cofhesdkClient.encryptInputs`:
-
-```typescript
-// `encryptInputs` is used to encrypt the value
-// the client must be initialized and connected before `encryptInputs` can be called
-const encryptResult = await client.encryptInputs([Encryptable.uint32(5n)]).encrypt();
-
-const [encryptedInput] = await hre.cofhesdk.expectResultSuccess(encryptResult);
-await hre.cofhesdk.mocks.expectPlaintext(encryptedInput.ctHash, 5n);
-
-await counter.connect(bob).set(encryptedInput);
-
-const count = await counter.count();
-await hre.cofhesdk.mocks.expectPlaintext(count, 5n);
-```
-
-When global logging is needed we can use the utilities:
-
-```typescript
-hre.cofhesdk.mocks.enableLogs()
-hre.cofhesdk.mocks.disableLogs()
-```
-
-or we can use targeted logging like this:
-
-```typescript
-await hre.cofhesdk.mocks.withLogs('counter.increment()', async () => {
-	await counter.connect(bob).increment()
-})
-```
-
-which will result in logs like this:
-
-```
-┌──────────────────┬──────────────────────────────────────────────────
-│ [COFHE-MOCKS]    │ "counter.increment()" logs:
-├──────────────────┴──────────────────────────────────────────────────
-├ FHE.add          | euint32(4473..3424)[0] + euint32(1157..3648)[1]  =>  euint32(1106..1872)[1]
-├ FHE.allowThis    | euint32(1106..1872)[1] -> 0x663f3ad617193148711d28f5334ee4ed07016602
-├ FHE.allow        | euint32(1106..1872)[1] -> 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc
-└─────────────────────────────────────────────────────────────────────
-```
-
-`euint32(4473..3424)[0]` represents an encrypted variable in the format `type(ct..hash)[plaintext]`
 
 ## NextJS with FHE
 
@@ -359,50 +246,6 @@ The portal displays:
 - **Permit Management**: Allows users to create new permits, switch between existing permits, and delete unused permits
 
 ### Frontend Components
-
-#### FHECounter Component
-
-The [`FHECounterComponent`](packages/nextjs/app/FHECounterComponent.tsx) demonstrates how to interact with FHE-enabled smart contracts in a React application:
-
-```typescript
-/**
- * FHECounterComponent - A demonstration of Fully Homomorphic Encryption (FHE) in a web application
- *
- * This component showcases how to:
- * 1. Read encrypted values from a smart contract
- * 2. Display encrypted values using a specialized component
- * 3. Encrypt user input before sending to the blockchain
- * 4. Interact with FHE-enabled smart contracts
- *
- * The counter value is stored as an encrypted uint32 on the blockchain,
- * meaning the actual value is never revealed on-chain.
- */
-```
-
-#### Key Features:
-
-1. **Reading Encrypted Values**: Uses `useScaffoldReadContract` to read the encrypted counter value from the smart contract
-2. **Displaying Encrypted Data**: Uses the `EncryptedValue` component to handle decryption and display
-3. **Encrypting User Input**: Demonstrates the process of encrypting user input before sending to the blockchain
-4. **Contract Interactions**: Shows how to call increment, decrement, and set functions on the FHE contract
-
-#### Input Encryption Process:
-
-```typescript
-/**
- * SetCounterRow Component
- *
- * Demonstrates the process of encrypting user input before sending it to the blockchain:
- * 1. User enters a number in the input field
- * 2. When "Set" is clicked, the number is encrypted using cofhe SDK
- * 3. The encrypted value is then sent to the smart contract
- *
- * This ensures the actual value is never exposed on the blockchain,
- * maintaining privacy while still allowing computations.
- */
-const encryptedResult = await cofhesdkClient.encryptInputs([encryptable]).encrypt();
-// encryptedResult is a result object with success status and data/error
-```
 
 #### Raffle Component
 
@@ -599,13 +442,11 @@ Before you begin, you need to install the following tools:
 
 ### Smart Contracts (`packages/hardhat/contracts/`)
 
-- **FHECounter.sol**: Simple encrypted counter demonstrating FHE operations
-- **Raffle.sol**: Privacy-preserving raffle system with encrypted participant tracking
+- **Raffle.sol**: Privacy-preserving raffle system with encrypted participant tracking using FHE
 - **MockUSDT.sol**: Mock USDT token for testing
 
 ### Frontend Components (`packages/nextjs/app/`)
 
-- **FHECounterComponent.tsx**: UI for interacting with the FHE Counter contract
 - **RaffleComponent.tsx**: Complete UI for the Raffle system
 - **useCofhe.ts**: React hooks for FHE operations
 - **useDecrypt.ts**: Utilities for decrypting encrypted values
@@ -613,7 +454,6 @@ Before you begin, you need to install the following tools:
 ### Deployment Scripts (`packages/hardhat/deploy/`)
 
 - **00_deploy_multicall3_only_HH.ts**: Deploys Multicall3 for local testing
-- **01_deploy_fhe_counter.ts**: Deploys the FHECounter contract
 - **02_deploy_raffle.ts**: Deploys the Raffle contract
 
 ## Development Workflow
